@@ -73,12 +73,13 @@ def main ():
 	excelToCsv (input_file, output_file)
 
 #--------------------------------------------------------------------
+# Convert excel in formato FRALG-062 to CSV 
 #--------------------------------------------------------------------
 def excelToCsv (input_path: str, output_path: str = None, sheet_name=None):
 	import os
+	row  = None
 	try:
 		df	 = excel_to_clean_df (input_path, sheet_name=sheet_name)
-		row  = None
 		rows = []	# Rows for dataframe
 		output_path = os.path.basename (input_path.split (".")[0] + ".csv")
 		for _, r in df.iterrows ():
@@ -102,13 +103,35 @@ def excelToCsv (input_path: str, output_path: str = None, sheet_name=None):
 
 		# Create a dataframe and a Remision object
 		newDf = pd.DataFrame (rows, columns=HEADERS)
-		newDf.to_csv (output_path, index=False, encoding="utf-8")
+		#newDf.to_csv ("tmp-remisiones-from-excel-FRALG-062.csv", index=False, encoding="utf-8")
 
 		print (f"✅ CSV created at: {output_path}")
 		return newDf
 	except Exception as ex:
 		print (f"+++ {ex=}")
 		raise Exception (f"Error importando excel to csv: Error en fila: {row}")
+	return None
+
+#--------------------------------------------------------------------
+# Return dataframe from excel backup (created by this app) 
+# Load the default first one sheet
+#--------------------------------------------------------------------
+def excelBackupToDataframe (input_path: str, output_path="tmp-remisiones-from-excel-backup.csv"):
+	import os
+	try:
+		newDf = pd.read_excel(
+			input_path,
+			dtype=str             # read everything as text
+			#skiprows=10,          # start from row 11
+			#header=None,          # no header row
+		)
+
+		print (f"✅ CSV created at: {output_path}")
+		#newDf.to_csv (output_path, index=False, encoding="utf-8")
+		return newDf
+	except Exception as ex:
+		print (f"+++ {ex=}")
+		raise Exception (f"Error importando backup excel to csv")
 	return None
 
 

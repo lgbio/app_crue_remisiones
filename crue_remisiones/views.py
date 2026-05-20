@@ -251,8 +251,16 @@ def exportar_excel(request):
     if not qs.exists():
         return JsonResponse({'ok': False, 'error': 'No hay registros para el período seleccionado.'}, status=400)
 
+    # Force ascending order for the report (first to last day)
+    qs = qs.order_by('fecha')
+
     buffer = exportar_a_excel(qs)
-    filename = f"remisiones_{hoy.strftime('%Y-%m-%d')}.xlsx"
+
+    # Filename: reporte_remisiones_YYYY_MMMM_DD.xlsx
+    meses_es = ['Enero','Febrero','Marzo','Abril','Mayo','Junio',
+                'Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre']
+    nombre_mes = meses_es[hoy.month - 1]
+    filename = f"reporte_remisiones_{hoy.year}_{nombre_mes}_{hoy.day:02d}.xlsx"
     response = HttpResponse(
         buffer.read(),
         content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
@@ -269,12 +277,13 @@ def importar_excel(request):
     if form.is_valid():
         archivo = form.cleaned_data['archivo']
         sheet_name = request.POST.get('sheet_name', None)
+        tipo_formato = request.POST.get('tipoFormatoExcel', 'FRALG-062')
         with tempfile.NamedTemporaryFile(suffix='.xlsx', delete=False) as tmp:
             for chunk in archivo.chunks():
                 tmp.write(chunk)
             temp_path = tmp.name
         try:
-            resultado = importar_desde_excel(temp_path, request.user, sheet_name=sheet_name)
+            resultado = importar_desde_excel(temp_path, request.user, tipoFormatoExcel=tipo_formato, sheet_name=sheet_name)
         finally:
             if os.path.exists(temp_path):
                 os.unlink(temp_path)

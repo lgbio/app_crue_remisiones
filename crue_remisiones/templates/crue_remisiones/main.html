@@ -491,6 +491,49 @@
 </div>
 <!-- /modal-confirmar-eliminar -->
 
+<!-- Modal de importación desde FRALG-062 -->
+<div id="modal-importar-fralg" class="modal fade" tabindex="-1" aria-labelledby="modal-importar-titulo" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="modal-importar-titulo">
+          <i class="bi bi-file-earmark-spreadsheet me-2"></i>Importar desde FRALG-062
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+      <div class="modal-body">
+        <form id="form-importar" method="post" action="{% url 'crue_remisiones:importar_excel' %}" enctype="multipart/form-data">
+          {% csrf_token %}
+          <input type="hidden" name="tipoFormatoExcel" id="id_tipo_formato_excel" value="FRALG-062">
+          <div class="mb-3">
+            <label for="id_archivo_importar" class="form-label fw-semibold">
+              Seleccionar archivo Excel
+            </label>
+            <input type="file" name="archivo" id="id_archivo_importar"
+                   class="form-control"
+                   accept=".xlsx,.xls">
+            <div class="form-text">Formato FRALG-062 (.xlsx o .xls)</div>
+          </div>
+          <div class="mb-3" id="sheet-selector-container" style="display:none;">
+            <label for="id_sheet_selector" class="form-label fw-semibold">
+              Seleccionar hoja
+            </label>
+            <select name="sheet_name" id="id_sheet_selector" class="form-select">
+            </select>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+        <button type="button" class="btn btn-primary btn-sm" id="btn-importar-submit">
+          <i class="bi bi-cloud-upload me-1"></i>Importar
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- /modal-importar-fralg -->
+
 {% endblock %}
 
 {% block extra_js %}

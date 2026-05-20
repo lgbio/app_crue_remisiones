@@ -479,19 +479,56 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   }
 
-  // Importar Excel — sheet selection and AJAX import
-  const formImportar = document.getElementById('form-importar');
+  // ─── Importar Excel — Modal-based interaction ───────────────────────────────
+
+  // Open import modal from sidebar links (both FRALG-062 and APP_BACKUP)
+  const btnAbrirImportar = document.getElementById('btn-abrir-modal-importar');
+  const btnAbrirImportarBackup = document.getElementById('btn-abrir-modal-importar-backup');
+  const modalImportarTitulo = document.getElementById('modal-importar-titulo');
+  const hiddenFormato = document.getElementById('id_tipo_formato_excel');
+
+  function abrirModalImportar(formato) {
+    const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('modal-importar-fralg'));
+    // Reset form state
+    const fileInput = document.getElementById('id_archivo_importar');
+    const sheetContainer = document.getElementById('sheet-selector-container');
+    if (fileInput) fileInput.value = '';
+    if (sheetContainer) sheetContainer.style.display = 'none';
+    // Set format type
+    if (hiddenFormato) hiddenFormato.value = formato;
+    // Update modal title
+    if (modalImportarTitulo) {
+      if (formato === 'FRALG-062') {
+        modalImportarTitulo.innerHTML = '<i class="bi bi-file-earmark-spreadsheet me-2"></i>Importar desde FRALG-062';
+      } else {
+        modalImportarTitulo.innerHTML = '<i class="bi bi-file-earmark-arrow-up me-2"></i>Importar desde excel de backup';
+      }
+    }
+    modal.show();
+  }
+
+  if (btnAbrirImportar) {
+    btnAbrirImportar.addEventListener('click', function (e) {
+      e.preventDefault();
+      abrirModalImportar('FRALG-062');
+    });
+  }
+  if (btnAbrirImportarBackup) {
+    btnAbrirImportarBackup.addEventListener('click', function (e) {
+      e.preventDefault();
+      abrirModalImportar('APP_BACKUP');
+    });
+  }
+
+  // When file is selected in the modal, fetch sheet names
   const fileInput = document.getElementById('id_archivo_importar');
   const sheetSelector = document.getElementById('id_sheet_selector');
-  const resultadoDiv = document.getElementById('importar-resultado');
+  const sheetContainer = document.getElementById('sheet-selector-container');
 
-  // When file is selected, fetch sheet names
   if (fileInput && sheetSelector) {
     fileInput.addEventListener('change', function () {
-      // Reset sheet selector
-      sheetSelector.style.display = 'none';
       sheetSelector.innerHTML = '';
-      if (resultadoDiv) { resultadoDiv.textContent = ''; resultadoDiv.className = 'mt-1 small sidebar-text sidebar-sub-content'; }
+      if (sheetContainer) sheetContainer.style.display = 'none';
 
       if (!this.files || !this.files[0]) return;
 
@@ -507,7 +544,6 @@ document.addEventListener('DOMContentLoaded', function () {
         .then(r => r.json())
         .then(data => {
           if (data.ok && data.hojas && data.hojas.length > 1) {
-            // Multiple sheets — show selector
             sheetSelector.innerHTML = '';
             data.hojas.forEach(function (nombre) {
               const opt = document.createElement('option');
@@ -515,34 +551,40 @@ document.addEventListener('DOMContentLoaded', function () {
               opt.textContent = nombre;
               sheetSelector.appendChild(opt);
             });
-            sheetSelector.style.display = '';
-          } else {
-            // Single sheet or error — hide selector
-            sheetSelector.style.display = 'none';
+            if (sheetContainer) sheetContainer.style.display = '';
           }
         })
-        .catch(() => {
-          sheetSelector.style.display = 'none';
-        });
+        .catch(() => {});
     });
   }
 
-  // Handle import form submit — show modal dialog
-  if (formImportar) {
-    formImportar.addEventListener('submit', function (e) {
-      e.preventDefault();
-      const formData = new FormData(this);
+  // Handle import button click in the modal
+  const btnImportarSubmit = document.getElementById('btn-importar-submit');
+  const formImportar = document.getElementById('form-importar');
+
+  if (btnImportarSubmit && formImportar) {
+    btnImportarSubmit.addEventListener('click', function () {
+      if (!fileInput || !fileInput.files || !fileInput.files[0]) {
+        alert('Seleccione un archivo Excel.');
+        return;
+      }
+
+      const formData = new FormData(formImportar);
+
+      // Close the file selection modal
+      const fileModal = bootstrap.Modal.getInstance(document.getElementById('modal-importar-fralg'));
+      if (fileModal) fileModal.hide();
 
       // Show processing modal
-      let importModal = document.getElementById('modal-importar-estado');
-      if (!importModal) {
-        importModal = document.createElement('div');
-        importModal.id = 'modal-importar-estado';
-        importModal.className = 'modal fade';
-        importModal.tabIndex = -1;
-        importModal.setAttribute('data-bs-backdrop', 'static');
-        importModal.setAttribute('data-bs-keyboard', 'false');
-        importModal.innerHTML = `
+      let statusModal = document.getElementById('modal-importar-estado');
+      if (!statusModal) {
+        statusModal = document.createElement('div');
+        statusModal.id = 'modal-importar-estado';
+        statusModal.className = 'modal fade';
+        statusModal.tabIndex = -1;
+        statusModal.setAttribute('data-bs-backdrop', 'static');
+        statusModal.setAttribute('data-bs-keyboard', 'false');
+        statusModal.innerHTML = `
           <div class="modal-dialog modal-sm modal-dialog-centered">
             <div class="modal-content">
               <div class="modal-body text-center py-4">
@@ -556,23 +598,22 @@ document.addEventListener('DOMContentLoaded', function () {
               </div>
             </div>
           </div>`;
-        document.body.appendChild(importModal);
+        document.body.appendChild(statusModal);
       }
 
-      const modalMsg = importModal.querySelector('#importar-modal-msg');
-      const modalSpinner = importModal.querySelector('#importar-modal-spinner');
-      const modalFooter = importModal.querySelector('#importar-modal-footer');
+      const modalMsg = statusModal.querySelector('#importar-modal-msg');
+      const modalSpinner = statusModal.querySelector('#importar-modal-spinner');
+      const modalFooter = statusModal.querySelector('#importar-modal-footer');
 
-      // Reset modal state
       modalMsg.textContent = 'Importando...';
       modalMsg.className = 'mb-0 fw-semibold';
       modalSpinner.classList.remove('d-none');
       modalFooter.classList.add('d-none');
 
-      const bsModal = bootstrap.Modal.getOrCreateInstance(importModal);
-      bsModal.show();
+      const bsStatusModal = bootstrap.Modal.getOrCreateInstance(statusModal);
+      bsStatusModal.show();
 
-      fetch(this.action, {
+      fetch(formImportar.action, {
         method: 'POST',
         headers: { 'X-Requested-With': 'XMLHttpRequest' },
         body: formData,
@@ -586,8 +627,7 @@ document.addEventListener('DOMContentLoaded', function () {
           if (data.ok) {
             modalMsg.textContent = `✓ ${data.importados} registros importados correctamente.`;
             modalMsg.className = 'mb-0 fw-semibold text-success';
-            // Reload after user closes modal
-            importModal.addEventListener('hidden.bs.modal', function () {
+            statusModal.addEventListener('hidden.bs.modal', function () {
               window.location.reload();
             }, { once: true });
           } else {

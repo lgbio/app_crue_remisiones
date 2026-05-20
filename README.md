@@ -12,7 +12,7 @@ El sistema **CRUE Remisiones Pacientes** es una aplicacion web Django que reempl
 - Importacion masiva desde Excel con validacion atomica.
 
 ## LOG
-May/16/26: r0.9995 : Report ordered by fecha ASC
+May/20/26: r0.9996 : Added import from excel backup
 
 May/15/26: r0.9994 : Added CRUE_RUNTYPE
 
